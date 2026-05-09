@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: usersapi-config
+  namespace: gamestore
+data:
+  RabbitMQ__Host: rabbitmq
+  RabbitMQ__Port: "5672"
+  RabbitMQ__Username: guest
+  Jwt__Issuer: "UsersAPI"
+  Jwt__Audience: "UsersAPI"

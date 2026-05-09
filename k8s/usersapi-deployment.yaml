@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: usersapi
+  labels:
+    app: usersapi
+  namespace: gamestore
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: usersapi
+  template:
+    metadata:
+      labels:
+        app: usersapi
+    spec:
+      containers:
+        - name: usersapi
+          image: usersapi-api:1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: usersapi-config
+            - secretRef:
+                name: usersapi-secrets
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+          env:
+          - name: ASPNETCORE_ENVIRONMENT
+            value: "Development"

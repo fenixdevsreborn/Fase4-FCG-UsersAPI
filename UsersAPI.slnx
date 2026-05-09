@@ -1,0 +1,30 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/docker/">
+    <File Path=".dockerignore" />
+    <File Path="docker-compose.yml" />
+    <File Path="Dockerfile" />
+  </Folder>
+  <Folder Name="/docker/postgres/">
+    <File Path="init.sql" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".dockerignore" />
+    <File Path="docker-compose.yml" />
+    <File Path="Dockerfile" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="src/UsersAPI.Application.Tests/UsersAPI.Application.Tests.csproj" />
+    <Project Path="src/UsersAPI.Domain.Tests/UsersAPI.Domain.Tests.csproj" />
+    <Project Path="src/UsersAPI.IntegrationTests/UsersAPI.IntegrationTests.csproj" />
+  </Folder>
+  <Project Path="src/Shared/Shared.csproj" />
+  <Project Path="src/UsersAPI.Api/UsersAPI.Api.csproj" />
+  <Project Path="src/UsersAPI.Application/UsersAPI.Application.csproj" />
+  <Project Path="src/UsersAPI.Domain/UsersAPI.Domain.csproj" />
+  <Project Path="src/UsersAPI.Infrastructure/UsersAPI.Infrastructure.csproj" />
+</Solution>

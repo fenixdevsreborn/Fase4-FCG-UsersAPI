@@ -1,0 +1,75 @@
+# services:
+  # postgres:
+  #   image: postgres:16
+  #   container_name: usersapi-postgres
+  #   environment:
+  #     POSTGRES_DB: users_db
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 5
+
+  # postgres-test:
+  #   image: postgres:16
+  #   container_name: usersapi-postgres-test
+  #   environment:
+  #     POSTGRES_DB: users_test_db
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   ports:
+  #     - "5433:5432"
+
+  # rabbitmq:
+  #   image: rabbitmq:3-management
+  #   container_name: gamestore-rabbitmq
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5672:5672"
+  #     - "15672:15672"
+  #   environment:
+  #     RABBITMQ_DEFAULT_USER: guest
+  #     RABBITMQ_DEFAULT_PASS: guest
+  #   volumes:
+  #     - rabbitmq_data:/var/lib/rabbitmq
+  #   healthcheck:
+  #     test: ["CMD", "rabbitmq-diagnostics", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  # api:
+    # build:
+      # context: .
+      # dockerfile: Dockerfile
+    # container_name: usersapi-api
+    # depends_on:
+      # postgres:
+        # condition: service_healthy
+      # rabbitmq:
+      #   condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTPS_PORT: 8443
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=users_db;Username=postgres;Password=postgres
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Port: 5672
+      RabbitMQ__Username: guest
+      RabbitMQ__Password: guest
+      Jwt__Key: super-secret-docker-key-change-this-32chars-min
+      MT_LICENSE: Community
+    ports:
+      - "5000:8080"
+      - "5001:8443"
+    volumes:
+      - ./src/UsersAPI.Api/Logs:/app/Logs
+
+# volumes:
+  # postgres_data:
+  # rabbitmq_data:

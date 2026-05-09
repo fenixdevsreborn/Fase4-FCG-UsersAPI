@@ -1,0 +1,15 @@
+# ⚠️ ATENÇÃO: Esta configuração é APENAS para desenvolvimento local/testes isolados
+# NÃO use em produção! Para produção, use Fase2-Orchestrator/k8s/postgres-users/
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: gamestore
+spec:
+  selector:
+    app: postgres
+  type: NodePort  # Alterado de ClusterIP para NodePort
+  ports:
+    - port: 5432       # Porta interna do serviço
+      targetPort: 5432 # Porta onde o container do Postgres está ouvindo
+      nodePort: 30432  # Porta externa nos nós (Opcional: 30000-32767)
