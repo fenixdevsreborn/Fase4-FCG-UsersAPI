@@ -1,6 +1,68 @@
-# UsersAPI
+# Fase4-FCG-UsersAPI
 
-Microsserviço responsável pelo **gerenciamento de usuários** e pela **publicação de eventos de domínio** (UserCreatedEvent) utilizados por outros microsserviços, especialmente para envio de e-mail de boas-vindas. 
+Microsserviço responsável pelo **gerenciamento de usuários** e pela **publicação de eventos de domínio** (`UserCreatedEvent`) utilizados por outros microsserviços, especialmente para envio de e-mail de boas-vindas.
+
+> **Branch alvo da pipeline:** `master`.
+> **Registries:** AWS ECR (`users-api`) **e** Docker Hub (`<DOCKERHUB_USERNAME>/fcg-users-api`).
+> Pipeline: [`.github/workflows/users-api-ci-cd.yml`](.github/workflows/users-api-ci-cd.yml).
+
+---
+
+## ⚙️ Configuração obrigatória para automação AWS + Docker Hub
+
+> **A documentação master da configuração manual está em [`Fase4-FCG-Orchestrator/docs/MANUAL-STEPS.md`](../Fase4-FCG-Orchestrator/docs/MANUAL-STEPS.md).** Esta seção é o resumo específico desta API.
+
+### 1. Pré-requisitos (uma vez na organização)
+
+- Bootstrap AWS executado em `Fase4-FCG-Orchestrator/infra/terraform/bootstrap/` (cria OIDC + IAM role)
+- Repositório Docker Hub `<DOCKERHUB_USERNAME>/fcg-users-api` criado em hub.docker.com
+- Personal Access Token Docker Hub com permissão **Read & Write**
+- Personal Access Token GitHub com `contents:write` no repo `Fase4-FCG-Orchestrator` (para o passo de GitOps)
+- Repositório ECR `users-api` (criado pelo Terraform principal)
+
+### 2. Branch padrão
+
+A pipeline só dispara em `push` para a branch **`master`**. Configure em **Settings → Branches → Default branch**.
+
+### 3. Secrets e Variables do repositório (Settings → Secrets and variables → Actions)
+
+| Tipo | Nome | Descrição |
+|------|------|-----------|
+| Secret | `AWS_GITHUB_ROLE_ARN` | ARN da role IAM (output `github_actions_role_arn` do bootstrap Terraform) |
+| Secret | `DOCKERHUB_USERNAME` | Username Docker Hub |
+| Secret | `DOCKERHUB_TOKEN` | PAT Docker Hub Read & Write |
+| Secret | `GITOPS_TOKEN` | PAT GitHub com `contents:write` no `Fase4-FCG-Orchestrator` |
+| Variable | `GITOPS_REPOSITORY` | `<seu-org>/Fase4-FCG-Orchestrator` |
+
+Setup rápido com `gh` CLI:
+
+```powershell
+$ORG="seu-org"; $REPO="Fase4-FCG-UsersAPI"
+gh secret   set AWS_GITHUB_ROLE_ARN --body "<role-arn>"     --repo "$ORG/$REPO"
+gh secret   set DOCKERHUB_USERNAME  --body "<dh-user>"      --repo "$ORG/$REPO"
+gh secret   set DOCKERHUB_TOKEN     --body "<dh-pat>"       --repo "$ORG/$REPO"
+gh secret   set GITOPS_TOKEN        --body "<gh-pat>"       --repo "$ORG/$REPO"
+gh variable set GITOPS_REPOSITORY   --body "$ORG/Fase4-FCG-Orchestrator" --repo "$ORG/$REPO"
+```
+
+### 4. O que a pipeline faz a cada push em `master`
+
+1. `dotnet restore` + `dotnet build` + `dotnet test` (com PostgreSQL service container)
+2. Auditoria NuGet — falha em High/Critical
+3. OIDC login em AWS → ECR login → `docker build` → `docker push` em ECR (tag `${GITHUB_SHA::12}`)
+4. Login em Docker Hub → `docker tag` + `docker push` em `<DOCKERHUB_USERNAME>/fcg-users-api:<sha>` **e** `:latest`
+5. Trivy scan na imagem (falha em High/Critical fixáveis)
+6. Checkout do `Fase4-FCG-Orchestrator` (com `GITOPS_TOKEN`) → atualiza tag em `deploy/helm/fcg-platform/values-prod.yaml` → commit & push em `master`
+7. Argo CD detecta a mudança e faz rolling update
+
+### 5. Primeiro disparo manual (após criar tudo)
+
+```powershell
+gh workflow run users-api-ci-cd.yml --repo "$ORG/Fase4-FCG-UsersAPI" --ref master
+```
+
+---
+
 
 ## Índice
 
@@ -24,7 +86,7 @@ O **UsersAPI** é um microsserviço desenvolvido com arquitetura orientada a eve
 * **Autenticar usuários** (em integrações com outros serviços, quando aplicável);
 * **Publicar eventos** quando um usuário é criado, acionando microsserviços dependentes (ex.: NotificationsAPI). 
 
-Este serviço faz parte da arquitetura de microsserviços implmentada no projeto da **Fase 2 – Tech Challenge** e é integrado ao ecossistema de serviços via **RabbitMQ/MassTransit**. 
+Este serviço faz parte da arquitetura de microsserviços implmentada no projeto da **Fase 4 – Tech Challenge** e é integrado ao ecossistema de serviços via **RabbitMQ/MassTransit**. 
 
 ---
 
@@ -132,7 +194,7 @@ Configure as variáveis abaixo via **ConfigMap** e **Secrets** no Kubernetes ou 
 
 1. Clone o repositório:
    ```bash
-   git clone https://github.com/thefenixdevs/Fase2-UsersAPI.git
+   git clone https://github.com/<seu-org>/Fase4-FCG-UsersAPI.git
 
 
 2. Configure as variáveis de ambiente no seu ambiente de desenvolvimento.
@@ -180,7 +242,7 @@ kubectl get pods
 
 ## 9. Considerações Acadêmicas
 
-Este microsserviço foi desenvolvido com foco educacional e abrange de forma completa os principais padrões esperados na certificação da **Fase 2** do desafio FIAP:
+Este microsserviço foi desenvolvido com foco educacional e abrange de forma completa os principais padrões esperados na certificação da **Fase 4** do desafio FIAP:
 
 * **Orientação a eventos e comunicação assíncrona**;
 * **Mensageria com RabbitMQ e MassTransit**;
