@@ -60,6 +60,15 @@ public class User : BaseEntity
         Touch();
     }
 
+    public void PromoteToAdmin()
+    {
+        if (Role == UserRole.Admin)
+            return;
+
+        Role = UserRole.Admin;
+        Touch();
+    }
+
     public enum UserRole
     {
         User = 0,

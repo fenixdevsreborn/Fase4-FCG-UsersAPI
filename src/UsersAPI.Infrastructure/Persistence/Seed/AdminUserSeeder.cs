@@ -16,26 +16,42 @@ namespace UsersAPI.Infrastructure.Persistence.Seed
             var adminEmail = configuration["AdminSeed:Email"];
             var adminPassword = configuration["AdminSeed:Password"];
 
-            if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+            if (string.IsNullOrWhiteSpace(adminEmail))
             {
                 if (environment.IsDevelopment() || environment.IsEnvironment("Test"))
                 {
                     adminEmail = "admin@usersapi.com";
-                    adminPassword = "Admin123!";
                 }
                 else
                 {
                     throw new InvalidOperationException(
-                        "AdminSeed:Email and AdminSeed:Password must be configured outside Development/Test.");
+                        "AdminSeed:Email must be configured outside Development/Test.");
                 }
             }
 
             var email = new Email(adminEmail);
 
-            var adminExists = context.Users.Any(u => u.Email.Value == email.Value);
+            var existingAdmin = context.Users.FirstOrDefault(u => u.Email.Value == email.Value);
 
-            if (adminExists)
+            if (existingAdmin is not null)
+            {
+                existingAdmin.PromoteToAdmin();
+                context.SaveChanges();
                 return;
+            }
+
+            if (string.IsNullOrWhiteSpace(adminPassword))
+            {
+                if (environment.IsDevelopment() || environment.IsEnvironment("Test"))
+                {
+                    adminPassword = "Admin123!";
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        "AdminSeed:Password must be configured to create the initial admin user outside Development/Test.");
+                }
+            }
 
             var passwordHasher = new PasswordHasher();
 

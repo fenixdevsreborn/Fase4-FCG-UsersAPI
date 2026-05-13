@@ -33,4 +33,20 @@ public class UserTests
         createdEvent.Email.Should().Be(email.Value);
         createdEvent.CreatedAt.Should().Be(user.CreatedAt);
     }
+
+    [Fact]
+    public void PromoteToAdmin_should_change_user_role_to_admin()
+    {
+        var user = new User(
+            "John Doe",
+            new Email("john@doe.com"),
+            "hashed-password",
+            UserRole.User
+        );
+
+        user.PromoteToAdmin();
+
+        user.Role.Should().Be(UserRole.Admin);
+        user.UpdatedAt.Should().NotBeNull();
+    }
 }
