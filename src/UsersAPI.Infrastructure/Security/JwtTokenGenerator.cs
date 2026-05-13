@@ -11,6 +11,7 @@ namespace UsersAPI.Infrastructure.Security;
 public sealed class JwtTokenGenerator : IJwtTokenGenerator
 {
     private readonly IConfiguration _config;
+    private const int DefaultExpiresInMinutes = 60;
 
     public JwtTokenGenerator(IConfiguration config)
     {
@@ -29,14 +30,18 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email.Value),
             new Claim("name", user.Name),
-            new(ClaimTypes.Role, user.Role.ToString())
+            new Claim("role", user.Role.ToString())
         };
+
+        var expiresInMinutes = int.TryParse(_config["Jwt:ExpiresInMinutes"], out var configuredMinutes)
+            ? configuredMinutes
+            : DefaultExpiresInMinutes;
 
         var token = new JwtSecurityToken(
             issuer: _config["Jwt:Issuer"],
             audience: _config["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(1),
+            expires: DateTime.UtcNow.AddMinutes(expiresInMinutes),
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

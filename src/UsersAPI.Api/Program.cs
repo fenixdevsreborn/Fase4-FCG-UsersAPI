@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Serilog;
-using System.Security.Claims;
 using System.Text;
 using UsersAPI.Api.Middlewares;
 using UsersAPI.Application;
@@ -30,9 +29,13 @@ builder.Services.AddInfrastructure(
     builder.Configuration.GetConnectionString("DefaultConnection")!
 );
 
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("Jwt:Key is required.");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -42,10 +45,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
+                Encoding.UTF8.GetBytes(jwtKey)
             ),
 
-            RoleClaimType = ClaimTypes.Role
+            RoleClaimType = "role",
+            NameClaimType = "name"
         };
     });
 
@@ -88,22 +92,32 @@ builder.Services.AddMassTransit(x =>
 {
     //x.AddConsumer<UserCreatedIntegrationEventConsumer>();
 
-    x.UsingRabbitMq((context, cfg) =>
+    if (builder.Environment.IsEnvironment("Test"))
     {
-        cfg.Host(host: rabbitMqHost, port: ushort.Parse(rabbitMqPort), virtualHost: "/", h =>
+        x.UsingInMemory((context, cfg) =>
         {
-            h.Username(rabbitMqUsername);
-            h.Password(rabbitMqPassword);
+            cfg.ConfigureEndpoints(context);
         });
-
-        // Configure explicit publication of UserCreatedIntegrationEvent
-        cfg.Message<Shared.Contracts.Events.UserCreatedIntegrationEvent>(m =>
+    }
+    else
+    {
+        x.UsingRabbitMq((context, cfg) =>
         {
-            m.SetEntityName("fcg.user-created-event");
-        });
+            cfg.Host(host: rabbitMqHost, port: ushort.Parse(rabbitMqPort), virtualHost: "/", h =>
+            {
+                h.Username(rabbitMqUsername);
+                h.Password(rabbitMqPassword);
+            });
 
-        cfg.ConfigureEndpoints(context);
-    });
+            // Configure explicit publication of UserCreatedIntegrationEvent
+            cfg.Message<Shared.Contracts.Events.UserCreatedIntegrationEvent>(m =>
+            {
+                m.SetEntityName("fcg.user-created-event");
+            });
+
+            cfg.ConfigureEndpoints(context);
+        });
+    }
 });
 
 // Add Health Checks
@@ -143,8 +157,7 @@ if (!app.Environment.IsEnvironment("Test"))
 
     db.Database.Migrate();
 
-    // 🌱 Admin user seed (DEV / PROD)
-    AdminUserSeeder.Seed(db);
+    AdminUserSeeder.Seed(db, builder.Configuration, app.Environment);
 }
 
 // Enable Swagger in all environments (except Test) for Gateway aggregation

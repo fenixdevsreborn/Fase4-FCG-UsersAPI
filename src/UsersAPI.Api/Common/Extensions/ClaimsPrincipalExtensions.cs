@@ -1,12 +1,15 @@
 ﻿using System.Security.Claims;
 
+using System.IdentityModel.Tokens.Jwt;
+
 namespace UsersAPI.Api.Common.Extensions
 {
     public static class ClaimsPrincipalExtensions
     {
         public static Guid GetUserId(this ClaimsPrincipal user)
         {
-            var value = user.FindFirstValue(ClaimTypes.NameIdentifier);
+            var value = user.FindFirstValue(JwtRegisteredClaimNames.Sub)
+                ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrWhiteSpace(value))
                 throw new InvalidOperationException("Missing UserId claim");
@@ -22,13 +25,15 @@ namespace UsersAPI.Api.Common.Extensions
 
         public static string GetEmail(this ClaimsPrincipal user)
         {
-            return user.FindFirstValue(ClaimTypes.Email)
+            return user.FindFirstValue(JwtRegisteredClaimNames.Email)
+                ?? user.FindFirstValue(ClaimTypes.Email)
                 ?? throw new InvalidOperationException("Missing Email claim");
         }
 
         public static string GetRole(this ClaimsPrincipal user)
         {
-            return user.FindFirstValue(ClaimTypes.Role)
+            return user.FindFirstValue("role")
+                ?? user.FindFirstValue(ClaimTypes.Role)
                 ?? throw new InvalidOperationException("Missing Role claim");
         }
     }
