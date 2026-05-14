@@ -168,6 +168,7 @@ if (!app.Environment.IsEnvironment("Test"))
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "UsersAPI v1");
+        c.RoutePrefix = "docs";
     });
 }
 
